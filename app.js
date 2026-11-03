@@ -1550,14 +1550,44 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Success Sheet "Back to Home" Button -> Takes user back to homepage
+  // Success Sheet "Return to Homepage" Button -> Guarantees clean navigation back to homepage
   if (btnSuccessHome) {
     btnSuccessHome.addEventListener('click', () => {
+      // Hide modals
       if (pickupSuccessModal) pickupSuccessModal.style.display = 'none';
       if (confirmOrderDialog) confirmOrderDialog.style.display = 'none';
-      if (screenStoreInfo) screenStoreInfo.classList.remove('active');
+      if (viewMedsModal) viewMedsModal.style.display = 'none';
+      if (storeSelectModal) storeSelectModal.style.display = 'none';
+      if (locationModal) locationModal.classList.remove('open');
+      if (searchOverlay) searchOverlay.classList.remove('open');
+      if (cameraModal) cameraModal.classList.remove('open');
+
+      // Explicitly deactivate all screens
+      if (screenStoreInfo) screenStoreInfo.classList.remove('active', 'preview-mode');
       if (screenPickStore) screenPickStore.classList.remove('active');
       if (screenCart) screenCart.classList.remove('active');
+      if (screenProductInfo) screenProductInfo.classList.remove('active');
+      if (screenReviewPages) screenReviewPages.classList.remove('active');
+      if (screenPrescriptionUpload) screenPrescriptionUpload.classList.remove('active');
+      if (screenPrescriptionsMain) screenPrescriptionsMain.classList.remove('active');
+
+      // Also querySelectorAll across all .screen-view elements if available
+      try {
+        const screens = document.querySelectorAll('.screen-view');
+        if (screens && screens.forEach) {
+          screens.forEach(screen => {
+            screen.classList.remove('active');
+            screen.classList.remove('preview-mode');
+            screen.style.zIndex = '';
+          });
+        }
+      } catch (e) {}
+
+      // Scroll homepage cleanly to top
+      const screenHome = document.getElementById('screen-home');
+      if (screenHome) {
+        screenHome.scrollTop = 0;
+      }
 
       // Reset cart state
       prescriptionMedicines.length = 0;
@@ -1565,8 +1595,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Reset navigation to Home
       navigationStack = ['home'];
+      highestScreenZIndex = 120;
       navItems.forEach(nav => nav.classList.toggle('active', nav.dataset.tab === 'home'));
-      showToast('Order confirmed! Returned to Home.');
+      showToast('Order confirmed! Returned to Homepage.');
     });
   }
 
