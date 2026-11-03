@@ -67,6 +67,88 @@ document.addEventListener('DOMContentLoaded', () => {
   let navigationStack = ['home'];
   let highestScreenZIndex = 120;
 
+  function resetToHomepage() {
+    // 1. Hide all modal overlays & dialogs
+    const pSuccessModal = document.getElementById('pickup-success-modal');
+    const cOrderDialog = document.getElementById('confirm-order-dialog');
+    const vMedsModal = document.getElementById('view-meds-modal');
+    const sSelectModal = document.getElementById('store-select-modal');
+    const lModal = document.getElementById('location-modal');
+    const sOverlay = document.getElementById('search-overlay');
+    const cModal = document.getElementById('camera-modal');
+
+    if (pSuccessModal) pSuccessModal.style.display = 'none';
+    if (cOrderDialog) cOrderDialog.style.display = 'none';
+    if (vMedsModal) vMedsModal.style.display = 'none';
+    if (sSelectModal) sSelectModal.style.display = 'none';
+    if (lModal) lModal.classList.remove('open');
+    if (sOverlay) sOverlay.classList.remove('open');
+    if (cModal) cModal.classList.remove('open');
+
+    // 2. Explicitly remove active & inline styles from EVERY known screen
+    const screens = [
+      screenProductInfo,
+      screenStoreInfo,
+      screenPickStore,
+      screenCart,
+      screenReviewPages,
+      screenPrescriptionUpload,
+      screenPrescriptionsMain,
+      screenLoading
+    ];
+    screens.forEach(sc => {
+      if (sc) {
+        sc.classList.remove('active', 'preview-mode');
+        sc.style.zIndex = '';
+        sc.style.transform = '';
+        sc.style.visibility = '';
+      }
+    });
+
+    // 3. QuerySelectorAll across every .screen-view in the DOM
+    try {
+      document.querySelectorAll('.screen-view').forEach(sc => {
+        sc.classList.remove('active', 'preview-mode');
+        sc.style.zIndex = '';
+        sc.style.transform = '';
+        sc.style.visibility = '';
+      });
+    } catch (e) {}
+
+    // 4. Reset navigation stack & z-index
+    navigationStack = ['home'];
+    highestScreenZIndex = 120;
+
+    // 5. Reset bottom navigation active state to Home
+    if (navItems && navItems.forEach) {
+      navItems.forEach(nav => {
+        nav.classList.toggle('active', nav.dataset.tab === 'home');
+      });
+    }
+
+    // 6. Reset cart state
+    prescriptionMedicines.length = 0;
+    if (typeof renderCartItems === 'function') {
+      renderCartItems();
+    }
+
+    // 7. Reset product page stepper / add button state
+    if (typeof updateProductActionUI === 'function') {
+      updateProductActionUI(0);
+    }
+
+    // 8. Scroll homepage cleanly to top
+    const screenHome = document.getElementById('screen-home');
+    if (screenHome) {
+      screenHome.scrollTop = 0;
+    }
+
+    showToast('Returned to Homepage');
+  }
+
+  // Expose globally to window so inline onclick works guaranteed
+  window.resetToHomepage = resetToHomepage;
+
   function bringToFront(el) {
     if (!el) return;
     highestScreenZIndex += 5;
@@ -1552,52 +1634,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Success Sheet "Return to Homepage" Button -> Guarantees clean navigation back to homepage
   if (btnSuccessHome) {
-    btnSuccessHome.addEventListener('click', () => {
-      // Hide modals
-      if (pickupSuccessModal) pickupSuccessModal.style.display = 'none';
-      if (confirmOrderDialog) confirmOrderDialog.style.display = 'none';
-      if (viewMedsModal) viewMedsModal.style.display = 'none';
-      if (storeSelectModal) storeSelectModal.style.display = 'none';
-      if (locationModal) locationModal.classList.remove('open');
-      if (searchOverlay) searchOverlay.classList.remove('open');
-      if (cameraModal) cameraModal.classList.remove('open');
-
-      // Explicitly deactivate all screens
-      if (screenStoreInfo) screenStoreInfo.classList.remove('active', 'preview-mode');
-      if (screenPickStore) screenPickStore.classList.remove('active');
-      if (screenCart) screenCart.classList.remove('active');
-      if (screenProductInfo) screenProductInfo.classList.remove('active');
-      if (screenReviewPages) screenReviewPages.classList.remove('active');
-      if (screenPrescriptionUpload) screenPrescriptionUpload.classList.remove('active');
-      if (screenPrescriptionsMain) screenPrescriptionsMain.classList.remove('active');
-
-      // Also querySelectorAll across all .screen-view elements if available
-      try {
-        const screens = document.querySelectorAll('.screen-view');
-        if (screens && screens.forEach) {
-          screens.forEach(screen => {
-            screen.classList.remove('active');
-            screen.classList.remove('preview-mode');
-            screen.style.zIndex = '';
-          });
-        }
-      } catch (e) {}
-
-      // Scroll homepage cleanly to top
-      const screenHome = document.getElementById('screen-home');
-      if (screenHome) {
-        screenHome.scrollTop = 0;
+    btnSuccessHome.addEventListener('click', (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
       }
-
-      // Reset cart state
-      prescriptionMedicines.length = 0;
-      if (typeof renderCartItems === 'function') renderCartItems();
-
-      // Reset navigation to Home
-      navigationStack = ['home'];
-      highestScreenZIndex = 120;
-      navItems.forEach(nav => nav.classList.toggle('active', nav.dataset.tab === 'home'));
-      showToast('Order confirmed! Returned to Homepage.');
+      resetToHomepage();
     });
   }
 
@@ -1607,11 +1649,7 @@ document.addEventListener('DOMContentLoaded', () => {
     item.addEventListener('click', () => {
       const tab = item.dataset.tab;
       if (tab === 'home') {
-        if (screenStoreInfo) screenStoreInfo.classList.remove('active');
-        if (screenPickStore) screenPickStore.classList.remove('active');
-        if (screenCart) screenCart.classList.remove('active');
-        navigationStack = ['home'];
-        navItems.forEach(nav => nav.classList.toggle('active', nav.dataset.tab === 'home'));
+        resetToHomepage();
       } else if (tab === 'prescription') {
         if (screenStoreInfo) screenStoreInfo.classList.remove('active');
         if (screenPickStore) screenPickStore.classList.remove('active');
@@ -2734,16 +2772,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const tabName = item.querySelector('.nav-label').textContent;
 
       if (item.dataset.tab === 'home') {
-        closeSearchOverlay();
-        if (screenPrescriptionUpload) screenPrescriptionUpload.classList.remove('active');
-        if (screenPrescriptionsMain) screenPrescriptionsMain.classList.remove('active');
-        if (screenReviewPages) screenReviewPages.classList.remove('active');
-        if (screenCart) screenCart.classList.remove('active');
-        if (screenLoading) screenLoading.classList.remove('active');
-        if (screenProductInfo) screenProductInfo.classList.remove('active');
-        navigationStack = ['home'];
-        navItems.forEach(nav => nav.classList.remove('active'));
-        item.classList.add('active');
+        resetToHomepage();
       } else if (item.dataset.tab === 'prescription') {
         closeSearchOverlay();
         if (screenPrescriptionUpload) screenPrescriptionUpload.classList.remove('active');
